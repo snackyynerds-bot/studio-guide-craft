@@ -34,10 +34,8 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   const mentorNavItems = [
     { icon: Home, label: "Dashboard", path: basePath },
     { icon: User, label: "Profile", path: `${basePath}/profile` },
-    { icon: Compass, label: "Explore Posts", path: `${basePath}/explore` },
     { icon: Calendar, label: "My Sessions", path: `${basePath}/sessions` },
     { icon: MessageSquare, label: "Chats", path: `${basePath}/chats` },
-    { icon: Award, label: "Rewards", path: `${basePath}/rewards` },
   ];
 
   const navItems = userType === "student" ? studentNavItems : mentorNavItems;
