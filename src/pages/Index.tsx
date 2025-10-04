@@ -1,98 +1,142 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { GraduationCap, Users, Github } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { GraduationCap, Lock, Mail, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const demoCredentials = [
+    { type: "Student", email: "student@mentorhub.com", password: "student123" },
+    { type: "Mentor", email: "mentor@mentorhub.com", password: "mentor123" },
+  ];
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error("Please enter both email and password");
+      return;
+    }
+
+    // Check credentials and redirect
+    if (email === "student@mentorhub.com" && password === "student123") {
+      toast.success("Welcome back, Student!");
+      setTimeout(() => navigate("/student-dashboard"), 500);
+    } else if (email === "mentor@mentorhub.com" && password === "mentor123") {
+      toast.success("Welcome back, Mentor!");
+      setTimeout(() => navigate("/mentor-dashboard"), 500);
+    } else {
+      toast.error("Invalid credentials. Please use demo credentials below.");
+    }
+  };
+
+  const fillDemoCredentials = (type: "Student" | "Mentor") => {
+    const creds = demoCredentials.find(c => c.type === type);
+    if (creds) {
+      setEmail(creds.email);
+      setPassword(creds.password);
+      toast.success(`${type} credentials filled!`);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-20">
-        {/* Header */}
-        <header className="text-center mb-20 animate-fade-in">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <GraduationCap className="w-10 h-10" />
-            <h1 className="text-5xl font-bold">MentorHub</h1>
+    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl animate-pulse-glow"></div>
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo and Header */}
+        <div className="text-center mb-8 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4 border border-primary/20 animate-pulse-glow">
+            <GraduationCap className="w-8 h-8 text-primary" />
           </div>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Connect, Learn, and Grow with GitHub-powered mentorship
-          </p>
-        </header>
-
-        {/* Main Content */}
-        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6 mb-20">
-          {/* Student Card */}
-          <Card className="p-8 hover:bg-card/80 transition-colors border border-border">
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 mx-auto bg-foreground rounded-lg flex items-center justify-center">
-                <Users className="w-8 h-8 text-background" />
-              </div>
-              <h2 className="text-2xl font-bold">I'm a Student</h2>
-              <p className="text-muted-foreground">
-                Explore posts, find mentors, and grow your skills
-              </p>
-              <div className="space-y-3">
-                <Link to="/student-dashboard" className="block">
-                  <Button className="w-full" size="lg">
-                    Enter Student Dashboard
-                  </Button>
-                </Link>
-                <Button variant="outline" className="w-full" size="lg">
-                  <Github className="mr-2 w-4 h-4" />
-                  Continue with GitHub
-                </Button>
-              </div>
-            </div>
-          </Card>
-
-          {/* Mentor Card */}
-          <Card className="p-8 hover:bg-card/80 transition-colors border border-border">
-            <div className="text-center space-y-6">
-              <div className="w-16 h-16 mx-auto bg-foreground rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-8 h-8 text-background" />
-              </div>
-              <h2 className="text-2xl font-bold">I'm a Mentor</h2>
-              <p className="text-muted-foreground">
-                Share your expertise and help shape the next generation
-              </p>
-              <div className="space-y-3">
-                <Link to="/mentor-dashboard" className="block">
-                  <Button className="w-full" size="lg">
-                    Enter Mentor Dashboard
-                  </Button>
-                </Link>
-                <Button variant="outline" className="w-full" size="lg">
-                  <Github className="mr-2 w-4 h-4" />
-                  Continue with GitHub
-                </Button>
-              </div>
-            </div>
-          </Card>
+          <h1 className="text-4xl font-bold mb-2">MentorHub</h1>
+          <p className="text-muted-foreground">GitHub-powered mentorship platform</p>
         </div>
 
-        {/* Features */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <div className="text-center space-y-3">
-            <div className="w-12 h-12 mx-auto bg-muted rounded-lg flex items-center justify-center">
-              <Github className="w-6 h-6" />
+        {/* Login Form */}
+        <Card className="p-8 border border-border backdrop-blur-sm bg-card/80 animate-scale-in">
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="transition-all duration-200 focus:border-primary/50"
+              />
             </div>
-            <h3 className="font-semibold">GitHub Integration</h3>
-            <p className="text-sm text-muted-foreground">Seamless login and profile sync</p>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-primary" />
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="transition-all duration-200 focus:border-primary/50"
+              />
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-105"
+            >
+              Sign In
+            </Button>
+          </form>
+        </Card>
+
+        {/* Demo Credentials */}
+        <div className="mt-6 animate-slide-in-bottom">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <p className="text-sm text-muted-foreground font-medium">Demo Credentials</p>
+            <Sparkles className="w-4 h-4 text-primary" />
           </div>
-          <div className="text-center space-y-3">
-            <div className="w-12 h-12 mx-auto bg-muted rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold">Community Driven</h3>
-            <p className="text-sm text-muted-foreground">Connect with peers and experts</p>
-          </div>
-          <div className="text-center space-y-3">
-            <div className="w-12 h-12 mx-auto bg-muted rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold">Structured Learning</h3>
-            <p className="text-sm text-muted-foreground">Track progress and milestones</p>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {demoCredentials.map((cred) => (
+              <Card
+                key={cred.type}
+                className="p-4 border border-border hover:border-primary/30 transition-all duration-200 cursor-pointer hover:scale-105"
+                onClick={() => fillDemoCredentials(cred.type as "Student" | "Mentor")}
+              >
+                <div className="space-y-1">
+                  <p className="font-bold text-sm text-primary">{cred.type}</p>
+                  <p className="text-xs text-muted-foreground break-all">{cred.email}</p>
+                  <p className="text-xs text-muted-foreground">{cred.password}</p>
+                  <p className="text-xs text-primary mt-2">Click to fill →</p>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+          Connect, learn, and grow with GitHub-powered mentorship
+        </p>
       </div>
     </div>
   );
