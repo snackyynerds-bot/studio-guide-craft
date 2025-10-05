@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GraduationCap, Users, BookOpen, Award, MessageSquare, ArrowRight, Github, Star, Zap } from "lucide-react";
+import { startGithubLogin } from "../api/auth";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -54,9 +55,9 @@ const Index = () => {
             </div>
             <span className="text-xl font-bold">MentorHub</span>
           </div>
-          <Button onClick={() => navigate("/login")} className="bg-primary hover:bg-primary/90">
-            Get Started
-            <ArrowRight className="ml-2 w-4 h-4" />
+          <Button onClick={() => startGithubLogin()} className="bg-primary hover:bg-primary/90">
+            <Github className="mr-2 w-4 h-4" />
+            Login with GitHub
           </Button>
         </div>
       </nav>
@@ -82,11 +83,11 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Button 
               size="lg" 
-              onClick={() => navigate("/login")}
+              onClick={() => startGithubLogin()}
               className="bg-primary hover:bg-primary/90 text-lg px-8 hover:scale-105 transition-transform"
             >
-              Start Your Journey
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <Github className="mr-2 w-5 h-5" />
+              Login with GitHub
             </Button>
             <Button 
               size="lg" 
@@ -162,11 +163,11 @@ const Index = () => {
           </p>
           <Button 
             size="lg" 
-            onClick={() => navigate("/login")}
+            onClick={() => startGithubLogin()}
             className="bg-primary hover:bg-primary/90 text-lg px-8 hover:scale-105 transition-transform"
           >
-            Get Started Now
-            <ArrowRight className="ml-2 w-5 h-5" />
+            <Github className="mr-2 w-5 h-5" />
+            Login with GitHub
           </Button>
         </Card>
       </section>

@@ -1,145 +1,140 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { GraduationCap, Lock, Mail, Sparkles } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { toast } from "sonner";
+import { getMe, setUserRole } from "../api/auth";
+import { Users, Github } from "lucide-react";
 
-const Index = () => {
+const Login = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
-  const demoCredentials = [
-    { type: "Student", email: "student@mentorhub.com", password: "student123" },
-    { type: "Mentor", email: "mentor@mentorhub.com", password: "mentor123" },
-  ];
+  useEffect(() => {
+    const checkAuth = async () => {
+      const res = await getMe();
+      if (res.ok) {
+        setUser(res.user);
+        // If user already has a role, redirect to appropriate dashboard
+        if (res.user?.role) {
+          navigate(res.user.role === 'student' ? '/student-dashboard' : '/mentor-dashboard');
+        }
+      }
+      setLoading(false);
+    };
+    checkAuth();
+  }, [navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error("Please enter both email and password");
-      return;
-    }
-
-    // Check credentials and redirect
-    if (email === "student@mentorhub.com" && password === "student123") {
-      toast.success("Welcome back, Student!");
-      setTimeout(() => navigate("/student-dashboard"), 500);
-    } else if (email === "mentor@mentorhub.com" && password === "mentor123") {
-      toast.success("Welcome back, Mentor!");
-      setTimeout(() => navigate("/mentor-dashboard"), 500);
+  const handleRoleSelection = async (role: 'student' | 'mentor') => {
+    setLoading(true);
+    const res = await setUserRole(role);
+    if (res.ok) {
+      toast.success(`Welcome as a ${role}!`);
+      navigate(role === 'student' ? '/student-dashboard' : '/mentor-dashboard');
     } else {
-      toast.error("Invalid credentials. Please use demo credentials below.");
+      toast.error('Failed to set role. Please try again.');
+      setLoading(false);
     }
   };
 
-  const fillDemoCredentials = (type: "Student" | "Mentor") => {
-    const creds = demoCredentials.find(c => c.type === type);
-    if (creds) {
-      setEmail(creds.email);
-      setPassword(creds.password);
-      toast.success(`${type} credentials filled!`);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="flex space-x-2">
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-75"></span>
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-150"></span>
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-300"></span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl animate-pulse-glow"></div>
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo and Header */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4 border border-primary/20 animate-pulse-glow">
-            <GraduationCap className="w-8 h-8 text-primary" />
+    <div className="min-h-screen bg-gradient-subtle">
+      <div className="container mx-auto px-4 py-16">
+        {/* Header */}
+        <header className="text-center mb-16 animate-fade-in">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 bg-gradient-primary rounded-2xl">
+              <GraduationCap className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-5xl font-bold text-white">
+              MentorHub
+            </h1>
           </div>
-          <h1 className="text-4xl font-bold mb-2">MentorHub</h1>
-          <p className="text-muted-foreground">GitHub-powered mentorship platform</p>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            {user ? `Welcome back, ${user.username || user.githubData?.profile?.login || 'User'}! Please choose your role to continue.` : 'Connect, Learn, and Grow with GitHub-powered mentorship'}
+          </p>
+        </header>
+
+        {/* Main Content */}
+        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 animate-slide-up">
+          {/* Student Card */}
+          <Card className="p-8 shadow-card hover:shadow-hover transition-all duration-300 hover:scale-105 border-0">
+            <div className="text-center space-y-6">
+              <div className="w-16 h-16 mx-auto bg-gradient-primary rounded-full flex items-center justify-center">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-foreground">I'm a Student</h2>
+              <p className="text-muted-foreground">
+                Explore posts, find mentors, and grow your skills with guidance from experienced developers
+              </p>
+              <div className="space-y-3">
+                <Button onClick={() => handleRoleSelection('student')} variant="outline" className="w-full" size="lg" disabled={loading}>
+                  Continue as Student
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Mentor Card */}
+          <Card className="p-8 shadow-card hover:shadow-hover transition-all duration-300 hover:scale-105 border-0">
+            <div className="text-center space-y-6">
+              <div className="w-16 h-16 mx-auto bg-gradient-secondary rounded-full flex items-center justify-center">
+                <GraduationCap className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-foreground">I'm a Mentor</h2>
+              <p className="text-muted-foreground">
+                Share your expertise, track contributions, manage bookings, and help shape the next generation
+              </p>
+              <div className="space-y-3">
+                <Button onClick={() => handleRoleSelection('mentor')} variant="outline" className="w-full" size="lg" disabled={loading}>
+                  Continue as Mentor
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
 
-        {/* Login Form */}
-        <Card className="p-8 border border-border backdrop-blur-sm bg-card/80 animate-scale-in">
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-primary" />
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="transition-all duration-200 focus:border-primary/50"
-              />
+        {/* Features */}
+        <div className="mt-16 grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="text-center space-y-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="w-12 h-12 mx-auto bg-muted rounded-lg flex items-center justify-center mb-3">
+              <Github className="w-6 h-6 text-primary" />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-primary" />
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="transition-all duration-200 focus:border-primary/50"
-              />
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-105"
-            >
-              Sign In
-            </Button>
-          </form>
-        </Card>
-
-        {/* Demo Credentials */}
-        <div className="mt-6 animate-slide-in-bottom">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <p className="text-sm text-muted-foreground font-medium">Demo Credentials</p>
-            <Sparkles className="w-4 h-4 text-primary" />
+            <h3 className="font-semibold text-foreground">GitHub Integration</h3>
+            <p className="text-sm text-muted-foreground">Seamless login and profile sync</p>
           </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            {demoCredentials.map((cred) => (
-              <Card
-                key={cred.type}
-                className="p-4 border border-border hover:border-primary/30 transition-all duration-200 cursor-pointer hover:scale-105"
-                onClick={() => fillDemoCredentials(cred.type as "Student" | "Mentor")}
-              >
-                <div className="space-y-1">
-                  <p className="font-bold text-sm text-primary">{cred.type}</p>
-                  <p className="text-xs text-muted-foreground break-all">{cred.email}</p>
-                  <p className="text-xs text-muted-foreground">{cred.password}</p>
-                  <p className="text-xs text-primary mt-2">Click to fill →</p>
-                </div>
-              </Card>
-            ))}
+          <div className="text-center space-y-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="w-12 h-12 mx-auto bg-muted rounded-lg flex items-center justify-center mb-3">
+              <Users className="w-6 h-6 text-primary" />
+            </div>
+            <h3 className="font-semibold text-foreground">Community Driven</h3>
+            <p className="text-sm text-muted-foreground">Connect with peers and experts</p>
+          </div>
+          <div className="text-center space-y-2 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <div className="w-12 h-12 mx-auto bg-muted rounded-lg flex items-center justify-center mb-3">
+              <GraduationCap className="w-6 h-6 text-primary" />
+            </div>
+            <h3 className="font-semibold text-foreground">Structured Learning</h3>
+            <p className="text-sm text-muted-foreground">Track progress and milestones</p>
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-          Connect, learn, and grow with GitHub-powered mentorship
-        </p>
       </div>
     </div>
   );
 };
 
-export default Index;
+export default Login;
