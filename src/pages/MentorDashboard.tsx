@@ -14,9 +14,13 @@ import {
 } from "lucide-react";
 import { getMe } from "../api/auth";
 import { useState, useEffect } from "react";
+import { getCompleteProfile, getUserSessions, getSessionStats } from "../api/backend";
 
 const MentorDashboard = () => {
   const [user, setUser] = useState<any>(null);
+  const [mentorProfile, setMentorProfile] = useState<any>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessionStats, setSessionStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,8 +29,35 @@ const MentorDashboard = () => {
       try {
         const data = await getMe();
         if (!mounted) return;
-        if (data?.ok) setUser(data.user);
-        else console.error("Failed to fetch user:", data);
+        if (data?.ok) {
+          setUser(data.user);
+          // Verify user role - redirect if not a mentor
+          if (data.user?.role && data.user.role !== 'mentor') {
+            window.location.href = data.user.role === 'student' ? '/student-dashboard' : '/login';
+            return;
+          }
+          
+          // Fetch complete profile and stats from MongoDB backend
+          if (data.user._id) {
+            try {
+              const completeProfile = await getCompleteProfile(data.user._id);
+              setMentorProfile(completeProfile.mentorProfile);
+              
+              // Fetch upcoming sessions
+              const upcomingSessions = await getUserSessions(data.user._id, 'mentor', 'confirmed');
+              setSessions(upcomingSessions.slice(0, 3)); // Show top 3
+              
+              // Fetch session stats
+              const stats = await getSessionStats(data.user._id, 'mentor');
+              setSessionStats(stats);
+            } catch (error) {
+              console.error("Error fetching mentor data:", error);
+            }
+          }
+        } else {
+          console.error("Failed to fetch user:", data);
+          window.location.href = '/login';
+        }
       } catch (err) {
         console.error("Error fetching user:", err);
       } finally {
@@ -39,7 +70,18 @@ const MentorDashboard = () => {
     };
   }, []);
 
-  if (loading) return <p className="text-center mt-10">Loading dashboard...</p>;
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="flex space-x-2">
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-75"></span>
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-150"></span>
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-300"></span>
+        </div>
+        <p className="text-muted-foreground">Loading your dashboard...</p>
+      </div>
+    );
+
   if (!user) return <p className="text-center mt-10">User not found</p>;
 
   const githubProfile = user.githubData?.profile || {};
@@ -58,8 +100,8 @@ const MentorDashboard = () => {
     },
     {
       icon: Users,
-      label: "Mentees",
-      value: user.menteesCount || 0,
+      label: "Total Sessions",
+      value: mentorProfile?.totalSessions || 0,
     },
     {
       icon: FolderGit2,
@@ -68,17 +110,31 @@ const MentorDashboard = () => {
     },
   ];
 
-  const upcomingMeetings = user.upcomingMeetings || [
-    { student: "Sarah Johnson", topic: "React Advanced Patterns", time: "Today, 3:00 PM" },
-    { student: "Mike Chen", topic: "TypeScript Best Practices", time: "Tomorrow, 2:00 PM" },
-    { student: "Emma Davis", topic: "System Design Review", time: "Friday, 4:00 PM" },
-  ];
+  const formatSessionTime = (date: string, startTime: string) => {
+    const sessionDate = new Date(date);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const recentChats = user.recentChats || [
-    { name: "John Doe", message: "Thanks for the session!", time: "5m ago", unread: true },
-    { name: "Alice Wang", message: "When can we schedule next?", time: "1h ago", unread: true },
-    { name: "Bob Martinez", message: "I completed the assignment", time: "3h ago", unread: false },
-  ];
+    let dateStr = "";
+    if (sessionDate.toDateString() === today.toDateString()) {
+      dateStr = "Today";
+    } else if (sessionDate.toDateString() === tomorrow.toDateString()) {
+      dateStr = "Tomorrow";
+    } else {
+      dateStr = sessionDate.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+    
+    return `${dateStr}, ${startTime}`;
+  };
+
+  const upcomingMeetings = sessions.map(session => ({
+    student: session.contributorId?.displayName || session.contributorId?.username || "Unknown",
+    topic: session.topic || "General Session",
+    time: formatSessionTime(session.scheduledDate, session.scheduledStartTime),
+  }));
+
+  const recentChats = user.recentChats || [];
 
   return (
     <DashboardLayout userType="mentor">
@@ -132,25 +188,19 @@ const MentorDashboard = () => {
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-muted-foreground">This Month</span>
-                    <span className="text-2xl font-bold text-primary">${user.earningsThisMonth || 0}</span>
+                    <span className="text-muted-foreground">Hourly Rate</span>
+                    <span className="text-2xl font-bold text-primary">${mentorProfile?.hourlyRate || 0}</span>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full"
-                      style={{ width: `${user.monthlyGoalProgress || 0}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{user.monthlyGoalProgress || 0}% of monthly goal</p>
+                  <p className="text-xs text-muted-foreground">Set your rate in profile settings</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Earned</p>
-                    <p className="text-xl font-bold">${user.totalEarned || 0}</p>
+                    <p className="text-sm text-muted-foreground">Completed</p>
+                    <p className="text-xl font-bold">{mentorProfile?.completedSessions || 0}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Avg/Session</p>
-                    <p className="text-xl font-bold">${user.avgPerSession || 0}</p>
+                    <p className="text-sm text-muted-foreground">Cancelled</p>
+                    <p className="text-xl font-bold">{mentorProfile?.cancelledSessions || 0}</p>
                   </div>
                 </div>
               </div>
@@ -222,24 +272,24 @@ const MentorDashboard = () => {
             <Card className="p-6 border border-border hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-2 mb-4">
                 <User className="w-5 h-5 text-primary" />
-                <h3 className="text-xl font-bold">Mentee Overview</h3>
+                <h3 className="text-xl font-bold">Session Stats</h3>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-3 border-b border-border">
-                  <span className="text-muted-foreground">Active Mentees</span>
-                  <span className="text-xl font-bold text-primary">{user.activeMentees || 0}</span>
+                  <span className="text-muted-foreground">Total Sessions</span>
+                  <span className="text-xl font-bold text-primary">{sessionStats?.total || 0}</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 border-b border-border">
-                  <span className="text-muted-foreground">Total Sessions</span>
-                  <span className="text-xl font-bold text-primary">{user.totalSessions || 0}</span>
+                  <span className="text-muted-foreground">Completed</span>
+                  <span className="text-xl font-bold text-primary">{sessionStats?.completed || 0}</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 border-b border-border">
                   <span className="text-muted-foreground">Average Rating</span>
-                  <span className="text-xl font-bold">{user.averageRating || 0} ⭐</span>
+                  <span className="text-xl font-bold">{mentorProfile?.overallRating?.toFixed(1) || "0.0"} ⭐</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Success Rate</span>
-                  <span className="text-xl font-bold text-primary">{user.successRate || 0}%</span>
+                  <span className="text-muted-foreground">Pending</span>
+                  <span className="text-xl font-bold text-primary">{sessionStats?.pending || 0}</span>
                 </div>
               </div>
             </Card>

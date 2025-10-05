@@ -1,17 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { GraduationCap, Lock, Mail, Sparkles } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
-import { startGithubLogin } from "../api/auth";
+import { getMe, setUserRole } from "../api/auth";
 import { Users, Github } from "lucide-react";
 
+const Login = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
-const Index = () => {
+  useEffect(() => {
+    const checkAuth = async () => {
+      const res = await getMe();
+      if (res.ok) {
+        setUser(res.user);
+        // If user already has a role, redirect to appropriate dashboard
+        if (res.user?.role) {
+          navigate(res.user.role === 'student' ? '/student-dashboard' : '/mentor-dashboard');
+        }
+      }
+      setLoading(false);
+    };
+    checkAuth();
+  }, [navigate]);
+
+  const handleRoleSelection = async (role: 'student' | 'mentor') => {
+    setLoading(true);
+    const res = await setUserRole(role);
+    if (res.ok) {
+      toast.success(`Welcome as a ${role}!`);
+      navigate(role === 'student' ? '/student-dashboard' : '/mentor-dashboard');
+    } else {
+      toast.error('Failed to set role. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="flex space-x-2">
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-75"></span>
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-150"></span>
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce delay-300"></span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <div className="container mx-auto px-4 py-16">
@@ -26,7 +65,7 @@ const Index = () => {
             </h1>
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Connect, Learn, and Grow with GitHub-powered mentorship
+            {user ? `Welcome back, ${user.username || user.githubData?.profile?.login || 'User'}! Please choose your role to continue.` : 'Connect, Learn, and Grow with GitHub-powered mentorship'}
           </p>
         </header>
 
@@ -43,9 +82,8 @@ const Index = () => {
                 Explore posts, find mentors, and grow your skills with guidance from experienced developers
               </p>
               <div className="space-y-3">
-                <Button onClick={() => startGithubLogin('student')} variant="outline" className="w-full" size="lg">
-                  <Github className="mr-2" />
-                  Continue with GitHub
+                <Button onClick={() => handleRoleSelection('student')} variant="outline" className="w-full" size="lg" disabled={loading}>
+                  Continue as Student
                 </Button>
               </div>
             </div>
@@ -62,9 +100,8 @@ const Index = () => {
                 Share your expertise, track contributions, manage bookings, and help shape the next generation
               </p>
               <div className="space-y-3">
-                <Button onClick={() => startGithubLogin('mentor')} variant="outline" className="w-full" size="lg">
-                  <Github className="mr-2" />
-                  Continue with GitHub
+                <Button onClick={() => handleRoleSelection('mentor')} variant="outline" className="w-full" size="lg" disabled={loading}>
+                  Continue as Mentor
                 </Button>
               </div>
             </div>
@@ -100,4 +137,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Login;
