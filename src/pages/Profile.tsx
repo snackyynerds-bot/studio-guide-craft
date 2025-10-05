@@ -3,10 +3,27 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Github, Mail, MapPin, Calendar } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { getMe } from "../api/auth";
 
 const Profile = () => {
   const location = useLocation();
   const userType = location.pathname.includes("student") ? "student" : "mentor";
+  const [user, setUser] = useState<any>(null);
+  const role = window.location.pathname.includes("student") ? "student" : "mentor";
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const res = await getMe();
+      if (res.ok) setUser(res.user);
+      else console.warn(res.message);
+    };
+    fetchUser();
+  }, []);
+
+  if (!user) return <div className="p-8 text-center">Loading profile...</div>;
+
+  const github = user.githubData?.profile || {};
 
   return (
     <DashboardLayout userType={userType}>
@@ -16,25 +33,25 @@ const Profile = () => {
         <Card className="p-8 border border-border">
           <div className="flex items-start gap-6 mb-6">
             <div className="w-24 h-24 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-3xl font-bold text-primary">
-              JD
+            {user.username?.[0]?.toUpperCase() || "U"}
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2">John Doe</h2>
+              <h2 className="text-2xl font-bold mb-2">{user.username || "User"}</h2>
               <p className="text-muted-foreground mb-4">
                 {userType === "student" ? "Aspiring Full-Stack Developer" : "Senior Software Engineer"}
               </p>
               <div className="flex flex-wrap gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span>john.doe@example.com</span>
+                  <span>{user.email || "Not provided"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>San Francisco, CA</span>
+                  <span>{github.location || "India"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span>Joined January 2024</span>
+                  <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
